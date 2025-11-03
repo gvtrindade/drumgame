@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dcvijok24xli7"
+path="res://.godot/imported/Snare_Maple.wav-269661684c6341572e8e2cb9964ccdb2.sample"
+
+[deps]
+
+source_file="res://songs/DTXFiles.Ozzy Osbourne/drums/Snare_Maple.wav"
+dest_files=["res://.godot/imported/Snare_Maple.wav-269661684c6341572e8e2cb9964ccdb2.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

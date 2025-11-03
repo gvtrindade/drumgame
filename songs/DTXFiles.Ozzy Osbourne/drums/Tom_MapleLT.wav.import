@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://bxhv0ojbllrum"
+path="res://.godot/imported/Tom_MapleLT.wav-2b85cbe4eb91aeba6a9d49c4389556cc.sample"
+
+[deps]
+
+source_file="res://songs/DTXFiles.Ozzy Osbourne/drums/Tom_MapleLT.wav"
+dest_files=["res://.godot/imported/Tom_MapleLT.wav-2b85cbe4eb91aeba6a9d49c4389556cc.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

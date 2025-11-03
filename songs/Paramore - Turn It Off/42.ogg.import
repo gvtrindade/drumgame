@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://btjysoqp6yhpi"
+path="res://.godot/imported/42.ogg-494fd287449dfd6fefa7260b7af2920f.oggvorbisstr"
+
+[deps]
+
+source_file="res://songs/Paramore - Turn It Off/42.ogg"
+dest_files=["res://.godot/imported/42.ogg-494fd287449dfd6fefa7260b7af2920f.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
