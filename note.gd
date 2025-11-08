@@ -1,6 +1,7 @@
 extends Area2D
 
-const NOTE_SIZE = 80
+const NOTE_HEIGHT = 30
+const NOTE_WIDTH = 80
 var FALL_SPEED = 300  # Will match rhythm_game
 
 var column: int = 0
@@ -19,14 +20,14 @@ func _ready():
       FALL_SPEED = game.NOTE_SPEED
 
 func _setup_visual():
-  visual.size = Vector2(NOTE_SIZE, NOTE_SIZE)
-  visual.position = Vector2(-NOTE_SIZE / 2, -NOTE_SIZE / 2)
+  visual.size = Vector2(NOTE_WIDTH, NOTE_HEIGHT)
+  visual.position = Vector2(-NOTE_WIDTH / 2, -NOTE_HEIGHT / 2)
   visual.color = note_color
 
 func _setup_collision():
   var collision = $NoteCollision
   var rect_shape = RectangleShape2D.new()
-  rect_shape.size = Vector2(NOTE_SIZE, NOTE_SIZE)
+  rect_shape.size = Vector2(NOTE_WIDTH, NOTE_HEIGHT)
   collision.shape = rect_shape
 
 func _process(delta):
