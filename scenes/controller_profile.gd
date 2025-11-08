@@ -20,14 +20,14 @@ var selected_device_type: String = ""  # "joystick", "midi", or "keyboard"
 var column_mappings: Array = []
 var is_listening_for_input: bool = false
 var loaded_profiles: Array = []
-const ACTIVE_PROFILE_PATH = "user://active_profile.txt"
+const SETTINGS_FILE_PATH = "user://settings.txt"
 var current_active_profile: String = ""
 
 
 # Drum column names
 var column_names: Array = [
-  "Kick", "Snare", "Hi-Hat", "High Tom", "Low Tom", 
-  "Floor Tom", "Crash", "Ride", "Left Pedal", "Left Cymbal"
+  "Left Cymbal", "Hi-Hat", "Left Pedal", "Snare", "High Tom", "Kick", "Low Tom", 
+  "Floor Tom", "Cymbal", "Ride"
 ]
 
 func _ready() -> void:
@@ -434,8 +434,8 @@ func load_profiles_list() -> void:
   loaded_profiles.clear()
   
   # Load current active profile
-  if FileAccess.file_exists(ACTIVE_PROFILE_PATH):
-    var file = FileAccess.open(ACTIVE_PROFILE_PATH, FileAccess.READ)
+  if FileAccess.file_exists(SETTINGS_FILE_PATH):
+    var file = FileAccess.open(SETTINGS_FILE_PATH, FileAccess.READ)
     current_active_profile = file.get_as_text().strip_edges()
     file.close()
   
@@ -519,10 +519,10 @@ func load_profile(profile_name: String) -> void:
   print("Loaded profile: ", profile_name)
 
 func load_active_profile() -> void:
-  if not FileAccess.file_exists(ACTIVE_PROFILE_PATH):
+  if not FileAccess.file_exists(SETTINGS_FILE_PATH):
     return
   
-  var file = FileAccess.open(ACTIVE_PROFILE_PATH, FileAccess.READ)
+  var file = FileAccess.open(SETTINGS_FILE_PATH, FileAccess.READ)
   var active_profile_name = file.get_as_text().strip_edges()
   file.close()
   
@@ -535,7 +535,7 @@ func load_active_profile() -> void:
 
 
 func set_active_profile(profile_name: String) -> void:
-  var file = FileAccess.open(ACTIVE_PROFILE_PATH, FileAccess.WRITE)
+  var file = FileAccess.open(SETTINGS_FILE_PATH, FileAccess.WRITE)
   file.store_string(profile_name)
   file.close()
   print("Set active profile: ", profile_name)

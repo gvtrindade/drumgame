@@ -237,7 +237,7 @@ func _load_song(index: int):
   GlobalSongData.selected_song_metadata = song
   
   # Change to rhythm game scene
-  get_tree().change_scene_to_file("res://rhythm_game.tscn")
+  get_tree().change_scene_to_file("res://scenes/rhythm_game.tscn")
 
 func _input(event):
   # Alternative: Press ENTER to select current item

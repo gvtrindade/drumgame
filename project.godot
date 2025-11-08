@@ -13,8 +13,7 @@ config_version=5
 config/name="DrumGame"
 run/main_scene="uid://dgphyqd4m4aek"
 config/features=PackedStringArray("4.4", "Forward Plus")
-config/icon="res://icon.svg"
 
 [autoload]
 
-GlobalSongData="*res://global_song_data.gd"
+GlobalSongData="*res://scripts/global_song_data.gd"

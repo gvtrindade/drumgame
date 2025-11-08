@@ -9,18 +9,18 @@ var notes: Array = []  # Array of {time, column, sound_code}
 var bpm_changes: Dictionary = {}  # bar -> bpm value
 
 var column_mapping: Dictionary = {
-  0x11: 1, #"Closed HH" 
-  0x12: 3, #"SD"
-  0x13: 5, #"BD"
-  0x14: 4, #"HT"
-  0x15: 6, #"LT"
-  0x16: 8, #"CY"
-  0x17: 7, #"FT"
-  0x18: 1, #"Open HH"
-  0x19: 9, #"RD"
   0x1A: 0, #"LC"
+  0x18: 1, #"Open HH"
+  0x11: 1, #"Closed HH" 
   0x1B: 2, #"LP"
   0x1C: 2, #"LB"
+  0x12: 3, #"SD"
+  0x14: 4, #"HT"
+  0x13: 5, #"BD"
+  0x15: 6, #"LT"
+  0x17: 7, #"FT"
+  0x16: 8, #"CY"
+  0x19: 9, #"RD"
 }
 
 var channel_mapping: Dictionary = {

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://dgphyqd4m4aek"]
 
-[ext_resource type="Script" uid="uid://pvr7d2qvdn8j" path="res://song_select.gd" id="1_yyygw"]
+[ext_resource type="Script" uid="uid://pvr7d2qvdn8j" path="res://scenes/song_select.gd" id="1_yyygw"]
 
 [node name="SongSelect" type="Control"]
 layout_mode = 3
