@@ -16,38 +16,50 @@ layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Back"
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer"]
+layout_mode = 2
 theme_override_constants/margin_left = 50
 theme_override_constants/margin_top = 50
 theme_override_constants/margin_right = 50
 theme_override_constants/margin_bottom = 50
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/MarginContainer"]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="VBoxContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 
-[node name="SongList" type="ItemList" parent="MarginContainer/VBoxContainer"]
+[node name="SongList" type="ItemList" parent="VBoxContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(600, 300)
 layout_mode = 2
 allow_reselect = true
 same_column_width = true
 
-[node name="InfoPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+[node name="InfoPanel" type="PanelContainer" parent="VBoxContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer/VBoxContainer/InfoPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer/MarginContainer/VBoxContainer/InfoPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="SongInfo" type="Label" parent="MarginContainer/VBoxContainer/InfoPanel/MarginContainer"]
+[node name="SongInfo" type="Label" parent="VBoxContainer/MarginContainer/VBoxContainer/InfoPanel/MarginContainer"]
 layout_mode = 2
+
+[connection signal="button_down" from="VBoxContainer/HBoxContainer/BackButton" to="." method="_on_back_button_button_down"]

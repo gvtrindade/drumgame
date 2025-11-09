@@ -426,8 +426,7 @@ func _on_save_button_pressed() -> void:
 
 
 func _on_back_button_pressed() -> void:
-  # Change this path to your main menu scene
-  get_tree().change_scene_to_file("res://main_menu.tscn")
+    SceneManager.goto_scene("title_screen")
 
 func load_profiles_list() -> void:
   profile_popup_menu.clear()

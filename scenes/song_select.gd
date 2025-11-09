@@ -2,9 +2,9 @@ extends Control
 
 const SONGS_FOLDER = "res://songs/"
 
-@onready var song_list = $MarginContainer/VBoxContainer/SongList
-@onready var song_info = $MarginContainer/VBoxContainer/InfoPanel/MarginContainer/SongInfo
-@onready var title_label = $MarginContainer/VBoxContainer/Title
+@onready var song_list = $VBoxContainer/MarginContainer/VBoxContainer/SongList
+@onready var song_info = $VBoxContainer/MarginContainer/VBoxContainer/InfoPanel/MarginContainer/SongInfo
+@onready var title_label = $VBoxContainer/MarginContainer/VBoxContainer/Title
 
 var song_data: Array = []
 
@@ -237,7 +237,7 @@ func _load_song(index: int):
   GlobalSongData.selected_song_metadata = song
   
   # Change to rhythm game scene
-  get_tree().change_scene_to_file("res://scenes/rhythm_game.tscn")
+  SceneManager.goto_scene("rhythm_game")
 
 func _input(event):
   # Alternative: Press ENTER to select current item
@@ -245,3 +245,6 @@ func _input(event):
     var selected = song_list.get_selected_items()
     if selected.size() > 0:
       _load_song(selected[0])
+      
+func _on_back_button_button_down() -> void:
+  SceneManager.goto_scene("title_screen")

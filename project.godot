@@ -11,9 +11,10 @@ config_version=5
 [application]
 
 config/name="DrumGame"
-run/main_scene="uid://dgphyqd4m4aek"
+run/main_scene="uid://3dohhgn1tbux"
 config/features=PackedStringArray("4.4", "Forward Plus")
 
 [autoload]
 
 GlobalSongData="*res://scripts/global_song_data.gd"
+SceneManager="*res://scripts/scene_manager.gd"

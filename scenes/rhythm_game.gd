@@ -65,7 +65,7 @@ func _ready():
 func _process(delta):
   if not is_playing or notes_data.is_empty():
     return
-  
+    
   # Get accurate audio time
   var current_time = _get_audio_time()
   
@@ -460,3 +460,6 @@ func _load_audio(audio_path: String):
     if audio_stream:
       music_player.stream = audio_stream
       print("Loaded OGG file")
+
+func _on_music_player_finished():
+  SceneManager.goto_scene("song_select")
