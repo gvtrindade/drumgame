@@ -8,21 +8,8 @@ const SONGS_FOLDER = "res://songs/"
 
 var song_data: Array = []
 
-class SongMetadata:
-  var file_path: String
-  var title: String = "Unknown"
-  var artist: String = "Unknown"
-  var genre: String = ""
-  var bpm: String = "0"
-  var dlevel: String = "0"
-  var preview: String = ""
-  var preimage: String = ""
-  
-  func get_display_name() -> String:
-    return "%s - %s" % [title, artist]
 
 func _ready():
-  _setup_ui()
   _load_songs()
   _populate_song_list()
   
@@ -30,35 +17,18 @@ func _ready():
     song_list.select(0)
     _update_info_display(0)
 
-func _setup_ui():
-  # Setup background
-  var bg = $Background
-  bg.color = Color(0.1, 0.1, 0.15)
-  bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-  
-  # Setup title
-  title_label.text = "SELECT SONG"
-  title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-  title_label.add_theme_font_size_override("font_size", 32)
-  
-  # Setup song list
-  song_list.custom_minimum_size = Vector2(800, 400)
-  song_list.add_theme_font_size_override("font_size", 20)
-  
-  # Connect signals
-  song_list.item_selected.connect(_on_song_selected)
-  song_list.item_activated.connect(_on_song_activated)
 
 func _load_songs():
-  # Check if songs folder exists
   if not DirAccess.dir_exists_absolute(SONGS_FOLDER):
     print("Songs folder not found: ", SONGS_FOLDER)
     return
   
   # Get all files in songs folder and subfolders
+  # TODO: create a hash file for the song list; Check the file, do not recreate the song path every time
   _scan_directory(SONGS_FOLDER)
   
   print("Found %d DTX files" % song_data.size())
+
 
 func _scan_directory(path: String):
   var dir = DirAccess.open(path)
@@ -86,6 +56,7 @@ func _scan_directory(path: String):
     file_name = dir.get_next()
   
   dir.list_dir_end()
+
 
 func _parse_dtx_file(file_path: String) -> SongMetadata:
   var file = FileAccess.open(file_path, FileAccess.READ)
@@ -141,6 +112,7 @@ func _parse_dtx_file(file_path: String) -> SongMetadata:
   file.close()
   return metadata
   
+
 func _read_line_safe(file: FileAccess) -> String:
   # Read line byte by byte to handle encoding issues
   var line_bytes = PackedByteArray()
@@ -149,9 +121,9 @@ func _read_line_safe(file: FileAccess) -> String:
     var byte = file.get_8()
 
     # Line break detection
-    if byte == 10:  # \n
+    if byte == 10: # \n
       break
-    elif byte == 13:  # \r
+    elif byte == 13: # \r
       # Check for \r\n
       if not file.eof_reached():
         var next_byte = file.get_8()
@@ -178,7 +150,7 @@ func _buffer_to_string_safe(buffer: PackedByteArray) -> String:
     else:
       # For non-ASCII, try to handle as Latin-1 or skip
       # This handles common Windows-1252 characters
-      if byte >= 160:  # Printable Latin-1 range
+      if byte >= 160: # Printable Latin-1 range
         result += char(byte)
       else:
         # Skip or replace control characters
@@ -202,11 +174,10 @@ func _populate_song_list():
   for song in song_data:
     song_list.add_item(song.get_display_name())
 
-func _on_song_selected(index: int):
+
+func _on_song_list_item_selected(index: int):
   _update_info_display(index)
 
-func _on_song_activated(index: int):
-  _load_song(index)
 
 func _update_info_display(index: int):
   if index < 0 or index >= song_data.size():
@@ -224,6 +195,11 @@ func _update_info_display(index: int):
   
   song_info.text = info_text
 
+
+func _on_song_list_item_activated(index: int):
+  _load_song(index)
+
+
 func _load_song(index: int):
   if index < 0 or index >= song_data.size():
     return
@@ -239,12 +215,14 @@ func _load_song(index: int):
   # Change to rhythm game scene
   SceneManager.goto_scene("rhythm_game")
 
+
 func _input(event):
   # Alternative: Press ENTER to select current item
   if event.is_action_pressed("ui_accept"):
     var selected = song_list.get_selected_items()
     if selected.size() > 0:
       _load_song(selected[0])
-      
+
+
 func _on_back_button_button_down() -> void:
   SceneManager.goto_scene("title_screen")
