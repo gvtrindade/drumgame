@@ -16,5 +16,5 @@ config/features=PackedStringArray("4.4", "Forward Plus")
 
 [autoload]
 
-GlobalSongData="*res://scripts/global_song_data.gd"
-SceneManager="*res://scripts/scene_manager.gd"
+GlobalSongData="*res://util/scripts/global_song_data.gd"
+SceneManager="*res://util/scripts/scene_manager.gd"

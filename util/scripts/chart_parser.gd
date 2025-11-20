@@ -1,26 +1,25 @@
-# ChartParser.gd
-extends Node
 class_name ChartParser
+extends Node
 
 # Data structures to hold parsed information
 var metadata: Dictionary = {}
-var wav_sounds: Dictionary = {}  # code -> {file_path, column, volume}
-var notes: Array = []  # Array of {time, column, sound_code}
-var bpm_changes: Dictionary = {}  # bar -> bpm value
+var wav_sounds: Dictionary = {} # code -> {file_path, column, volume}
+var notes: Array = [] # Array of {time, column, sound_code}
+var bpm_changes: Dictionary = {} # bar -> bpm value
 
 var column_mapping: Dictionary = {
-  0x1A: 0, #"LC"
-  0x18: 1, #"Open HH"
-  0x11: 1, #"Closed HH" 
-  0x1B: 2, #"LP"
-  0x1C: 2, #"LB"
-  0x12: 3, #"SD"
-  0x14: 4, #"HT"
-  0x13: 5, #"BD"
-  0x15: 6, #"LT"
-  0x17: 7, #"FT"
-  0x16: 8, #"CY"
-  0x19: 9, #"RD"
+  0x1A: 0, # "LC"
+  0x18: 1, # "Open HH"
+  0x11: 1, # "Closed HH"
+  0x1B: 2, # "LP"
+  0x1C: 2, # "LB"
+  0x12: 3, # "SD"
+  0x14: 4, # "HT"
+  0x13: 5, # "BD"
+  0x15: 6, # "LT"
+  0x17: 7, # "FT"
+  0x16: 8, # "CY"
+  0x19: 9, # "RD"
 }
 
 var channel_mapping: Dictionary = {
@@ -40,17 +39,20 @@ var channel_mapping: Dictionary = {
   0x1C: "LB",
 }
 
+
 func parse_chart_file(file_path: String) -> bool:
-  var file = FileAccess.open(file_path, FileAccess.READ)
-  if file == null:
+  if not FileAccess.file_exists(file_path):
     push_error("Failed to open chart file: " + file_path)
     return false
   
-  var content = file.get_as_text()
-  file.close()
+  var file_bytes = FileAccess.get_file_as_bytes(file_path)
+  var content = file_bytes.get_string_from_utf8()
+  if content[0] != ";":
+    content = file_bytes.get_string_from_utf16()
   
   _parse_content(content)
   return true
+
 
 func _parse_content(content: String) -> void:
   var lines = content.split("\n")
@@ -72,6 +74,7 @@ func _parse_content(content: String) -> void:
     else:
       _parse_metadata_line(line)
 
+
 func _parse_wav_line(line: String) -> void:
   # Format: #WAV<code>: <file_path>;<column_code>
   # or: #WAV<code>: <file_path>\t;<description>
@@ -82,11 +85,9 @@ func _parse_wav_line(line: String) -> void:
   var code = parts[0].replace("#WAV", "").strip_edges()
   var right_side = parts[1].strip_edges()
   
-  # Split by semicolon or tab+semicolon
   var file_and_column = right_side.split(";")
   var file_path = file_and_column[0].strip_edges()
   
-  # Initialize sound data
   if not wav_sounds.has(code):
     wav_sounds[code] = {
       "file_path": file_path,
@@ -95,15 +96,7 @@ func _parse_wav_line(line: String) -> void:
     }
   else:
     wav_sounds[code]["file_path"] = file_path
-  
-  # Check if column mapping is provided after semicolon
-  if file_and_column.size() > 1:
-    var column_code = file_and_column[1].strip_edges()
-    # Remove any additional comments
-    if "\t" in column_code:
-      column_code = column_code.split("\t")[0].strip_edges()
-    if not column_code.is_empty() and column_code.length() <= 2:
-      wav_sounds[code]["column"] = column_code
+
 
 func _parse_volume_line(line: String) -> void:
   # Format: #VOLUME<code>: <volume>
@@ -117,57 +110,42 @@ func _parse_volume_line(line: String) -> void:
   if wav_sounds.has(code):
     wav_sounds[code]["volume"] = volume
 
-func _parse_bpm_line(line: String) -> void:
-  # Format: #BPM: <value> or #BPM<code>: <value>
-  var parts = line.split(":", true, 1)
-  if parts.size() < 2:
-    return
-  
-  var key = parts[0].replace("#BPM", "").strip_edges()
-  var value = float(parts[1].strip_edges())
-  
-  if key.is_empty():
-    # Base BPM
-    metadata["bpm"] = value
-  else:
-    # BPM change at specific point
-    bpm_changes[key] = value
 
 func _is_note_line(line: String) -> bool:
-  # Note lines start with # followed by bar number (3-5 digits) and channel (2 hex digits)
-  # Format: #<bar><channel>: <data>
+  # Note lines start with # followed by bar number (3 digits) and channel (2 hex digits)
   if not line.begins_with("#"):
     return false
 
   var parts = line.split(":", true, 1)
   var regex = RegEx.new()
-  regex.compile("^\\#\\d{4}[a-zA-Z0-9]+$") 
+  regex.compile("^\\#\\d{4}[a-zA-Z0-9]+$")
   return regex.search(parts[0]) != null
+
 
 func _parse_note_line(line: String) -> void:
   # Format: #<bar><channel>: <note_data>
-  # Example: #00313: 02 means at bar 003, channel 13, sound code 02
+  # Example: #00313: 02, means at bar 003, channel 13, sound code 02
   var parts = line.split(":", true, 1)
   if parts.size() < 2:
     return
   
-  var identifier = parts[0].substr(1)  # Remove #
+  var identifier = parts[0].substr(1)
   var note_data = parts[1].strip_edges()
   
   if note_data.is_empty() or note_data == "00":
     return
   
-  # Extract bar and channel
   var bar = int(identifier.substr(0, 3))
   var channel = identifier.substr(3)
   
   # Parse note data (pairs of hex characters)
-  var note_count = note_data.length() / 2
+  # Example: 02020002 has 3 notes
+  var note_count: int = note_data.length() / 2
   var time_division = 1.0 / float(note_count)
   
   for i in range(note_count):
     var sound_code = note_data.substr(i * 2, 2)
-    var channel_hex =  "0x" + channel
+    var channel_hex = "0x" + channel
     if sound_code != "00":
       var time = float(bar) + (float(i) * time_division)
       var is_channel_column = column_mapping.keys().has(channel_hex.hex_to_int())
@@ -181,6 +159,7 @@ func _parse_note_line(line: String) -> void:
         "channel": channel_hex
       })
 
+
 func _parse_metadata_line(line: String) -> void:
   # Format: #KEY: value
   if not line.begins_with("#"):
@@ -192,37 +171,31 @@ func _parse_metadata_line(line: String) -> void:
   
   var key = parts[0].substr(1).strip_edges().to_lower()
   var value = parts[1].strip_edges()
+
+  if value.contains(";"):
+    value = value.split(";")[0].strip_edges()
+  elif value.contains("#"):
+    value = value.split("#")[0].strip_edges()
   
   metadata[key] = value
+
 
 # Helper functions to get parsed data
 func get_metadata() -> Dictionary:
   return metadata
 
+
 func get_wav_sounds() -> Dictionary:
   return wav_sounds
 
-func get_notes() -> Array:
-  return notes
-
-func get_bpm_changes() -> Dictionary:
-  return bpm_changes
-
-func get_column_mapping() -> Dictionary:
-  return column_mapping
 
 # Convert bar time to actual seconds
 func bar_to_seconds(bar_time: float, bpm_value: float = 120.0) -> float:
-  if metadata.has("bpm"):
-    bpm_value = float(metadata["bpm"])
+  var seconds_per_bar = (60.0 / bpm_value) * 4.0 # Assuming 4/4 time
   
-  var seconds_per_bar = (60.0 / bpm_value) * 4.0  # Assuming 4/4 time
-  
-  # TODO: Account for BPM changes
   return bar_time * seconds_per_bar
 
 
-# Get all notes sorted by time
 func get_sorted_notes() -> Array:
   var sorted = notes.duplicate()
   sorted.sort_custom(func(a, b): return a.time < b.time)

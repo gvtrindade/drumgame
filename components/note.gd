@@ -1,8 +1,9 @@
 extends Area2D
 
-const NOTE_HEIGHT = 30
-const NOTE_WIDTH = 80
 var FALL_SPEED = 300  # Will match rhythm_game
+
+@export var NOTE_HEIGHT = 30
+@export var NOTE_WIDTH = 80
 
 var column: int = 0
 var note_color: Color = Color.RED
