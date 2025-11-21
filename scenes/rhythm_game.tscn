@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://do121pqc27568" path="res://scenes/rhythm_game.gd" id="1_pbj7f"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_76igm"]
+size = Vector2(1197, 20)
 
 [node name="RhythmGame" type="Node2D"]
 script = ExtResource("1_pbj7f")
@@ -13,12 +14,15 @@ script = ExtResource("1_pbj7f")
 
 [node name="HitZone" type="Area2D" parent="GameArea"]
 
-[node name="HitZoneCollision" type="CollisionShape2D" parent="GameArea/HitZone"]
+[node name="HitZoneWindow" type="CollisionShape2D" parent="GameArea/HitZone"]
+position = Vector2(578.5, 542)
 shape = SubResource("RectangleShape2D_76igm")
 
 [node name="HitZoneVisual" type="ColorRect" parent="GameArea/HitZone"]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = -14.0
+offset_top = 540.0
+offset_right = 1175.0
+offset_bottom = 546.0
 
 [node name="Notes" type="Node2D" parent="."]
 
@@ -34,12 +38,35 @@ offset_bottom = 60.0
 theme_override_font_sizes/font_size = 32
 text = "Score: 0"
 
-[node name="Label" type="Label" parent="UI"]
-offset_right = 40.0
-offset_bottom = 23.0
+[node name="VolumeLabel" type="Label" parent="UI"]
+offset_left = 1010.0
+offset_top = 24.0
+offset_right = 1130.0
+offset_bottom = 47.0
+text = "Music Volume"
+horizontal_alignment = 2
+
+[node name="VolumeSlider" type="HSlider" parent="UI"]
+offset_left = 930.0
+offset_top = 54.0
+offset_right = 1130.0
+offset_bottom = 70.0
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="DebugButton" type="Button" parent="UI"]
+offset_left = 1004.0
+offset_top = 588.0
+offset_right = 1134.0
+offset_bottom = 619.0
+focus_mode = 0
+text = "Toggle Debug"
 
 [node name="Sounds" type="Node2D" parent="."]
 
 [connection signal="area_entered" from="GameArea/HitZone" to="." method="_on_hit_zone_area_entered"]
 [connection signal="area_exited" from="GameArea/HitZone" to="." method="_on_hit_zone_area_exited"]
 [connection signal="finished" from="MusicPlayer" to="." method="_on_music_player_finished"]
+[connection signal="value_changed" from="UI/VolumeSlider" to="." method="_on_volume_slider_value_changed"]
+[connection signal="pressed" from="UI/DebugButton" to="." method="_on_debug_toggle_pressed"]

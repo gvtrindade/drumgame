@@ -39,6 +39,19 @@ var channel_mapping: Dictionary = {
   0x1C: "LB",
 }
 
+var channel_colors = {
+  0: Color(0.6, 0.7, 1.0), # Left Crash - Medium Blue
+  1: Color(0.3, 0.8, 0.8), # HI-Hat - Cyan
+  2: Color(0.9, 0.7, 0.6), # Left Pedal
+  3: Color(1.0, 0.3, 0.3), # Snare - Red
+  4: Color(1.0, 0.8, 0.2), # High Tom - Yellow
+  5: Color(0.8, 0.2, 0.8), # Bass - Purple
+  6: Color(1.0, 0.6, 0.2), # Low Tom - Orange
+  7: Color(0.3, 1.0, 0.3), # Floor Tom - Green
+  8: Color(0.9, 0.5, 0.1), # Crash - Dark Orange
+  9: Color(0.7, 0.9, 1.0), # Ride - Very Light Blue
+}
+
 
 func parse_chart_file(file_path: String) -> bool:
   if not FileAccess.file_exists(file_path):
@@ -139,22 +152,23 @@ func _parse_note_line(line: String) -> void:
   var channel = identifier.substr(3)
   
   # Parse note data (pairs of hex characters)
-  # Example: 02020002 has 3 notes
+  # Example: 02020002 has 3 notes and 4 positions
   var note_count: int = note_data.length() / 2
-  var time_division = 1.0 / float(note_count)
+  var max_position: int = 96
   
   for i in range(note_count):
     var sound_code = note_data.substr(i * 2, 2)
     var channel_hex = "0x" + channel
     if sound_code != "00":
-      var time = float(bar) + (float(i) * time_division)
       var is_channel_column = column_mapping.keys().has(channel_hex.hex_to_int())
+      var column = column_mapping[channel_hex.hex_to_int()] if is_channel_column else null
+      var color = channel_colors.get(column, Color.WHITE)
            
       notes.append({
-        "time": time,
         "bar": bar,
-        "position": float(i) * time_division,
-        "column": column_mapping[channel_hex.hex_to_int()] if is_channel_column else null,
+        "position": i * (max_position / note_count),
+        "column": column,
+        "color": color,
         "sound_code": sound_code,
         "channel": channel_hex
       })
@@ -198,5 +212,9 @@ func bar_to_seconds(bar_time: float, bpm_value: float = 120.0) -> float:
 
 func get_sorted_notes() -> Array:
   var sorted = notes.duplicate()
-  sorted.sort_custom(func(a, b): return a.time < b.time)
+  sorted.sort_custom(func(a, b):
+    if a.bar != b.bar:
+      return a.bar < b.bar
+    return a.position < b.position
+  )
   return sorted

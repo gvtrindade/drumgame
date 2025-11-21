@@ -1,27 +1,30 @@
 extends Node2D
 
 const COLUMN_COUNT = 10
-const COLUMN_WIDTH = 100.0
+const COLUMN_WIDTH = 80.0
+const MARGIN_SIDE = 100.0
 const HIT_ZONE_Y = 500
 const HIT_ZONE_HEIGHT = 10
 const NOTE_SPEED = 300
+const TICKS_PER_BAR = 96.0
+const BEATS_PER_BAR = 4.0
 
 @onready var column_dividers = $GameArea/ColumnDividers
 @onready var notes_container = $Notes
 @onready var music_player = $MusicPlayer
 @onready var score_label = $UI/ScoreLabel
-@onready var time_label = $UI/Label
 @onready var sounds = $Sounds
 
 # HitZone
 @onready var hit_zone = $GameArea/HitZone
 @onready var hit_zone_visual = $GameArea/HitZone/HitZoneVisual
-@onready var hit_zone_collision = $GameArea/HitZone/HitZoneCollision
+@onready var hit_zone_window = $GameArea/HitZone/HitZoneWindow
 
 const Note = preload("res://components/note.tscn")
 
 # Support Scripts
 var chart_parser: ChartParser
+var notification_manager: TextNotificationManager
 var profile_loader: ProfileLoader = ProfileLoader.new()
 
 # Screen
@@ -35,6 +38,8 @@ var dtx_dir: String = ""
 var metadata: Dictionary = {}
 var wav_sounds: Dictionary = {}
 var bpm: float = 120.0
+var seconds_per_beat = 60.0 / bpm
+var seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
 
 # Notes info
 var notes_data: Array = []
@@ -48,20 +53,7 @@ var time_elapsed: float = 0.0
 var key_bindings: Dictionary = {}
 var active_controller: String = ""
 var score: int = 0
-
-# Column note colors
-var channel_colors = {
-  0: Color(0.6, 0.7, 1.0), # Left Crash - Medium Blue
-  1: Color(0.3, 0.8, 0.8), # HI-Hat - Cyan
-  2: Color(0.9, 0.7, 0.6), # Left Pedal
-  3: Color(1.0, 0.3, 0.3), # Snare - Red
-  4: Color(1.0, 0.8, 0.2), # High Tom - Yellow
-  5: Color(0.8, 0.2, 0.8), # Bass - Purple
-  6: Color(1.0, 0.6, 0.2), # Low Tom - Orange
-  7: Color(0.3, 1.0, 0.3), # Floor Tom - Green
-  8: Color(0.9, 0.5, 0.1), # Crash - Dark Orange
-  9: Color(0.7, 0.9, 1.0), # Ride - Very Light Blue
-}
+var debug: bool = true 
 
 
 func _ready():
@@ -69,6 +61,9 @@ func _ready():
   screen_width = screen_size.x
   note_spawn_distance = screen_size.y
   travel_time = note_spawn_distance / NOTE_SPEED
+
+  notification_manager = TextNotificationManager.new()
+  add_child(notification_manager)
   
   score = 0
   dtx_dir = GlobalSongData.selected_song_path.get_base_dir()
@@ -92,22 +87,56 @@ func _update_score_display():
 func _setup_columns():
   for i in range(COLUMN_COUNT + 1):
     var line = Line2D.new()
-    line.add_point(Vector2(i * COLUMN_WIDTH, 0))
-    line.add_point(Vector2(i * COLUMN_WIDTH, 600))
-    line.default_color = Color(0.3, 0.3, 0.3, 0.5)
+    var x_pos = MARGIN_SIDE + (i * COLUMN_WIDTH)
+    line.add_point(Vector2(x_pos, 0))
+    line.add_point(Vector2(x_pos, 600))
+    line.default_color = Color(0.5, 0.5, 0.5, 1.0)
     line.width = 2
     column_dividers.add_child(line)
 
 
 func _setup_hit_zone():
-  hit_zone_visual.size = Vector2(screen_width, HIT_ZONE_HEIGHT)
-  hit_zone_visual.position = Vector2(0, HIT_ZONE_Y)
+  var game_area_width = COLUMN_COUNT * COLUMN_WIDTH
+  hit_zone_visual.size = Vector2(game_area_width, HIT_ZONE_HEIGHT)
+  hit_zone_visual.position = Vector2(MARGIN_SIDE, HIT_ZONE_Y)
   hit_zone_visual.color = Color.WHITE
   
   var rect_shape = RectangleShape2D.new()
-  rect_shape.size = Vector2(screen_width, HIT_ZONE_HEIGHT * 2)
-  hit_zone_collision.shape = rect_shape
-  hit_zone_collision.position = Vector2(screen_width / 2, HIT_ZONE_Y)
+  rect_shape.size = Vector2(game_area_width, HIT_ZONE_HEIGHT * 2)
+  hit_zone_window.shape = rect_shape
+  hit_zone_window.position = Vector2(screen_width / 2, HIT_ZONE_Y)
+
+  var center_line = ColorRect.new()
+  center_line.name = "CenterLineVisual"
+  center_line.color = Color(0.2, 0.2, 0.2, 1.0) # Dark gray line
+  center_line.size = Vector2(game_area_width, 2) # 2px thick
+  center_line.position = Vector2(0, HIT_ZONE_HEIGHT / 2.0 - 1.0) # Centered inside visual
+  hit_zone_visual.add_child(center_line)
+
+  var trigger_area = Area2D.new()
+  trigger_area.name = "CenterLineTrigger"
+  hit_zone.add_child(trigger_area)
+
+  var trigger_shape = CollisionShape2D.new()
+  var shape = RectangleShape2D.new()
+  shape.size = Vector2(screen_width, 2) # Thin trigger line
+  trigger_shape.shape = shape
+
+  # Position strictly in the middle of the visual
+  # Visual starts at HIT_ZONE_Y. Middle is + Height/2
+  trigger_shape.position = Vector2(screen_width / 2.0, HIT_ZONE_Y + HIT_ZONE_HEIGHT / 2.0)
+  trigger_area.add_child(trigger_shape)
+
+  # Connect the specific trigger signal
+  trigger_area.area_entered.connect(_on_center_line_trigger_entered)
+
+
+func _on_center_line_trigger_entered(area: Area2D):
+  if area.is_in_group("notes") and debug:
+    var column = area.get_meta("column") if area.has_meta("column") else -1
+    if column >= 0:
+      # Triggers the hit logic automatically when the line is reached
+      _handle_column_hit(column)
 
 
 func _set_active_controller():
@@ -141,47 +170,15 @@ func _load_selected_song():
     bpm = float(metadata.get("bpm"))
   elif song.bpm != null:
     bpm = float(song.bpm)
-  else:
-    bpm = 120.0
+    
+  seconds_per_beat = 60.0 / bpm
+  seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
   
   print("BPM: ", bpm)
   
   # Process notes from parser
-  _process_parsed_notes()
+  notes_data = chart_parser.get_sorted_notes()
   print("Loaded ", notes_data.size(), " notes")
-  
-
-func _process_parsed_notes():
-  notes_data.clear()
-  var parsed_notes = chart_parser.get_sorted_notes()
-  
-  # Group notes by time for simultaneous spawning
-  var temp_notes = {}
-  
-  for note in parsed_notes:
-    # Convert bar time to seconds using the correct BPM
-    var note_time = chart_parser.bar_to_seconds(note.time, bpm)
-    var color = channel_colors.get(note.column, Color.WHITE)
-    
-    # Group by time
-    if not temp_notes.has(note_time):
-      temp_notes[note_time] = []
-    
-    temp_notes[note_time].append({
-      "time": note_time + travel_time,
-      "column": note.column,
-      "color": color,
-      "channel": note.channel,
-      "sound_code": note.sound_code
-    })
-  
-  # Convert to sorted array
-  var note_times = temp_notes.keys()
-  note_times.sort()
-  
-  for note_time in note_times:
-    for note_info in temp_notes[note_time]:
-      notes_data.append(note_info)
 
 
 func _setup_sounds():
@@ -197,17 +194,12 @@ func _setup_sounds():
 
 
 func _process(_delta):
-  var playback_pos = 0
-
-  if music_player.playing:
-    playback_pos = music_player.get_playback_position()
-
   while current_note_index < notes_data.size():
     var note_info = notes_data[current_note_index]
-    var spawn_time = note_info.time - travel_time
+    var spawn_time = get_note_target_time(note_info)
     
-    if (playback_pos and playback_pos >= spawn_time) or time_elapsed >= spawn_time:
-      _execute_note(note_info)
+    if time_elapsed >= spawn_time:
+      _execute_note(note_info, spawn_time + travel_time)
       current_note_index += 1
     else:
       break
@@ -215,11 +207,25 @@ func _process(_delta):
   var i = 0
   while i < pending_non_column_notes.size():
     var note_info = pending_non_column_notes[i]
-    if (playback_pos and playback_pos >= note_info.time) or time_elapsed >= note_info.time:
+    var hit_time = get_note_target_time(note_info) + travel_time
+
+    if time_elapsed >= hit_time:
       _execute_non_column_note(note_info)
       pending_non_column_notes.remove_at(i)
     else:
       i += 1
+
+
+func get_note_target_time(note) -> float:
+  var total_bars: float = note.bar + (note.position / TICKS_PER_BAR)
+  return total_bars * seconds_per_bar
+
+
+func _execute_note(note_info, hit_time) -> void:
+  if note_info.column != null:
+    _spawn_note_from_data(note_info, hit_time)
+  else:
+    pending_non_column_notes.append(note_info)
 
 
 func _physics_process(delta):
@@ -227,22 +233,6 @@ func _physics_process(delta):
     return
   
   time_elapsed += delta
-
-
-func _get_audio_time() -> float:
-  if not music_player.playing:
-    return 0.0
-  
-  var time = music_player.get_playback_position() + AudioServer.get_time_since_last_mix()
-  time -= AudioServer.get_output_latency()
-  return time
-
-
-func _execute_note(note_info) -> void:
-  if note_info.column != null:
-    _spawn_note_from_data(note_info, note_info.time)
-  else:
-    pending_non_column_notes.append(note_info)
 
 
 func _execute_non_column_note(note_info) -> void:
@@ -261,15 +251,26 @@ func _spawn_note_from_data(note_info: Dictionary, hit_time: float):
   
   # Store the exact time this note should reach the hit zone
   note.set_meta("hit_time", hit_time)
-  note.set_meta("spawn_time", _get_audio_time())
+  note.set_meta("spawn_time", time_elapsed)
   note.set_meta("column", note_info.column)
   note.set_meta("sound_code", note_info.sound_code)
   
+  note.add_to_group("notes")
+
   notes_container.add_child(note)
 
 
 func get_column_x_position(column_index: int) -> float:
-  return float(column_index) * COLUMN_WIDTH + COLUMN_WIDTH / 2
+  return MARGIN_SIDE + float(column_index) * COLUMN_WIDTH + COLUMN_WIDTH / 2
+
+
+func _get_audio_time() -> float:
+  if not music_player.playing:
+    return 0.0
+  
+  var time = music_player.get_playback_position() + AudioServer.get_time_since_last_mix()
+  time -= AudioServer.get_output_latency()
+  return time
 
 
 func _load_bgm(sound_code: String) -> void:
@@ -279,12 +280,19 @@ func _load_bgm(sound_code: String) -> void:
     
   if music_player.stream != null:
     music_player.play()
+    notification_manager.spawn_text("Loaded song")
 
 
 func _get_audio_file_path(file_key: String) -> String:
   if wav_sounds.has(file_key):
-    return dtx_dir + "/" + wav_sounds[file_key].file_path
-  
+    var path: String = wav_sounds[file_key].file_path
+    if path.begins_with(".."):
+      var last_bar = dtx_dir.rfind("/")
+      var new_dtx_dir = dtx_dir.substr(0, last_bar)
+      var address_index = path.find("\\")
+      return new_dtx_dir + path.substr(address_index)
+
+    return dtx_dir + "/" + path
   return ""
 
 
@@ -301,13 +309,19 @@ func _load_audio(audio_stream_player: AudioStreamPlayer, audio_path: String):
     var audio_stream = AudioStreamOggVorbis.load_from_file(audio_path)
     if audio_stream:
       audio_stream_player.stream = audio_stream
-      print("Loaded OGG file")
+  elif extension == "wav":
+    var audio_stream = AudioStreamWAV.load_from_file(audio_path)
+    if audio_stream:
+      audio_stream_player.stream = audio_stream
   else:
-    print("File type not supported")
+    print("Could not load file: %s" % audio_path)
 
 
 func _change_bpm(sound_code: String) -> void:
   bpm = float(metadata["bpm" + sound_code.to_lower()])
+  seconds_per_beat = 60.0 / bpm
+  seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
+  notification_manager.spawn_text("Changed bpm to %f" % bpm)
 
 
 func _input(event):
@@ -383,21 +397,22 @@ func _handle_column_hit(column: int):
   
   var note = active_notes[column]
   var hit_time = note.get_meta("hit_time")
-  var current_time = _get_audio_time()
+  var current_time = time_elapsed
   var timing_difference = abs(current_time - hit_time)
   var sound_player = sounds.get_node(note.get_meta("sound_code"))
   sound_player.play()
   
   # Calculate score based on accuracy
-  var points = _calculate_score(timing_difference)
-  score += points
-  _update_score_display()
+  if not debug:
+    var points = _calculate_score(timing_difference)
+    score += points
+    _update_score_display()
+    print("Hit! Column: ", column, " Accuracy: ", timing_difference, " Points: ", points)
   
   # Remove the note
   active_notes.erase(column)
   note.queue_free()
   
-  print("Hit! Column: ", column, " Accuracy: ", timing_difference, " Points: ", points)
 
 
 func _calculate_score(timing_difference: float) -> int:
@@ -405,16 +420,16 @@ func _calculate_score(timing_difference: float) -> int:
   if timing_difference <= 0.05:
     return 100
   # Great hit zone (within 100ms)
-  elif timing_difference <= 0.10:
+  if timing_difference <= 0.10:
     return 50
   # Good hit zone (within 150ms)
-  elif timing_difference <= 0.15:
+  if timing_difference <= 0.15:
     return 25
   # Okay hit zone (within 200ms)
-  elif timing_difference <= 0.20:
+  if timing_difference <= 0.20:
     return 10
-  else:
-    return 0
+    
+  return 0
 
 
 func _on_hit_zone_area_entered(area: Area2D):
@@ -422,15 +437,23 @@ func _on_hit_zone_area_entered(area: Area2D):
     var column = area.get_meta("column") if area.has_meta("column") else -1
     if column >= 0:
       active_notes[column] = area
-    #print("Note entered hit zone: ", area.name)
 
 func _on_hit_zone_area_exited(area: Area2D):
   if area.is_in_group("notes"):
     var column = area.get_meta("column") if area.has_meta("column") else -1
     if column >= 0 and active_notes.has(column):
       active_notes.erase(column)
-    #print("Note exited hit zone: ", area.name)
 
 
 func _on_music_player_finished():
   SceneManager.goto_scene("song_select")
+
+
+func _on_volume_slider_value_changed(value):
+  music_player.volume_db = linear_to_db(value)
+
+
+func _on_debug_toggle_pressed():
+  debug = !debug
+  var status = "enabled" if debug else "disabled"
+  notification_manager.spawn_text("Debug mode " + status)
