@@ -185,7 +185,8 @@ func _setup_sounds():
   for key in wav_sounds.keys():
     var audio_player = AudioStreamPlayer.new()
     audio_player.name = key
-    audio_player.set_volume_linear(wav_sounds[key].volume / 100)
+    
+    audio_player.set_volume_linear(float(wav_sounds[key].volume) / 100.0)
 
     var path = _get_audio_file_path(key)
     _load_audio(audio_player, path)
@@ -309,10 +310,12 @@ func _load_audio(audio_stream_player: AudioStreamPlayer, audio_path: String):
     var audio_stream = AudioStreamOggVorbis.load_from_file(audio_path)
     if audio_stream:
       audio_stream_player.stream = audio_stream
+      audio_stream_player.play()
   elif extension == "wav":
     var audio_stream = AudioStreamWAV.load_from_file(audio_path)
     if audio_stream:
       audio_stream_player.stream = audio_stream
+      audio_stream_player.play()
   else:
     print("Could not load file: %s" % audio_path)
 
