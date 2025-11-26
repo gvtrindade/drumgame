@@ -59,7 +59,7 @@ label_settings = SubResource("LabelSettings_kjvwo")
 horizontal_alignment = 1
 
 [node name="SongList" type="ItemList" parent="VBoxContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(800, 400)
+custom_minimum_size = Vector2(800, 280)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 allow_reselect = true

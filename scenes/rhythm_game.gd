@@ -45,7 +45,18 @@ var seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
 var notes_data: Array = []
 var pending_non_column_notes: Array = []
 var current_note_index: int = 0
-var active_notes: Dictionary = {}
+var active_notes: Dictionary = {
+  0: [],
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+  5: [],
+  6: [],
+  7: [],
+  8: [],
+  9: [],
+}
 
 # Game info
 var is_playing: bool = false
@@ -115,6 +126,7 @@ func _setup_hit_zone():
 
   var trigger_area = Area2D.new()
   trigger_area.name = "CenterLineTrigger"
+  trigger_area.add_to_group("auto_hit")
   hit_zone.add_child(trigger_area)
 
   var trigger_shape = CollisionShape2D.new()
@@ -126,17 +138,6 @@ func _setup_hit_zone():
   # Visual starts at HIT_ZONE_Y. Middle is + Height/2
   trigger_shape.position = Vector2(screen_width / 2.0, HIT_ZONE_Y + HIT_ZONE_HEIGHT / 2.0)
   trigger_area.add_child(trigger_shape)
-
-  # Connect the specific trigger signal
-  trigger_area.area_entered.connect(_on_center_line_trigger_entered)
-
-
-func _on_center_line_trigger_entered(area: Area2D):
-  if area.is_in_group("notes") and debug:
-    var column = area.get_meta("column") if area.has_meta("column") else -1
-    if column >= 0:
-      # Triggers the hit logic automatically when the line is reached
-      _handle_column_hit(column)
 
 
 func _set_active_controller():
@@ -258,12 +259,17 @@ func _spawn_note_from_data(note_info: Dictionary, hit_time: float):
   
   note.add_to_group("notes")
 
+  note.connect("area_entered", _on_center_line_trigger_entered.bind(note_info.column))
   notes_container.add_child(note)
 
 
 func get_column_x_position(column_index: int) -> float:
   return MARGIN_SIDE + float(column_index) * COLUMN_WIDTH + COLUMN_WIDTH / 2
 
+
+func _on_center_line_trigger_entered(area: Area2D, column: int):
+  if area.is_in_group("auto_hit") and debug:
+      _handle_column_hit(column)
 
 func _get_audio_time() -> float:
   if not music_player.playing:
@@ -394,11 +400,11 @@ func _is_column_key_pressed(column: int, event: InputEvent) -> bool:
 
 
 func _handle_column_hit(column: int):
-  if not active_notes.has(column):
+  if active_notes[column].is_empty():
     print("Miss - No note in column ", column)
     return
   
-  var note = active_notes[column]
+  var note = active_notes[column][0]
   var hit_time = note.get_meta("hit_time")
   var current_time = time_elapsed
   var timing_difference = abs(current_time - hit_time)
@@ -412,10 +418,8 @@ func _handle_column_hit(column: int):
     _update_score_display()
     print("Hit! Column: ", column, " Accuracy: ", timing_difference, " Points: ", points)
   
-  # Remove the note
-  active_notes.erase(column)
+  active_notes[column].erase(note)
   note.queue_free()
-  
 
 
 func _calculate_score(timing_difference: float) -> int:
@@ -438,14 +442,17 @@ func _calculate_score(timing_difference: float) -> int:
 func _on_hit_zone_area_entered(area: Area2D):
   if area.is_in_group("notes"):
     var column = area.get_meta("column") if area.has_meta("column") else -1
-    if column >= 0:
-      active_notes[column] = area
+    if column >= 0:     
+      # Add the new note to the end of the list
+      active_notes[column].append(area)
+
 
 func _on_hit_zone_area_exited(area: Area2D):
   if area.is_in_group("notes"):
     var column = area.get_meta("column") if area.has_meta("column") else -1
     if column >= 0 and active_notes.has(column):
-      active_notes.erase(column)
+      # Remove this specific note instance from the array
+      active_notes[column].erase(area)
 
 
 func _on_music_player_finished():
