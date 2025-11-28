@@ -24,6 +24,8 @@ offset_top = 540.0
 offset_right = 1175.0
 offset_bottom = 546.0
 
+[node name="GridLines" type="Node2D" parent="."]
+
 [node name="Notes" type="Node2D" parent="."]
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
@@ -39,12 +41,11 @@ theme_override_font_sizes/font_size = 32
 text = "Score: 0"
 
 [node name="VolumeLabel" type="Label" parent="UI"]
-offset_left = 1010.0
-offset_top = 24.0
-offset_right = 1130.0
-offset_bottom = 47.0
+offset_left = 933.0
+offset_top = 25.0
+offset_right = 1053.0
+offset_bottom = 48.0
 text = "Music Volume"
-horizontal_alignment = 2
 
 [node name="VolumeSlider" type="HSlider" parent="UI"]
 offset_left = 930.0
@@ -62,6 +63,13 @@ offset_right = 1134.0
 offset_bottom = 619.0
 focus_mode = 0
 text = "Toggle Debug"
+
+[node name="BarTrackerLabel" type="Label" parent="UI"]
+offset_left = 931.0
+offset_top = 86.0
+offset_right = 1033.0
+offset_bottom = 109.0
+text = "Time: 0"
 
 [node name="Sounds" type="Node2D" parent="."]
 

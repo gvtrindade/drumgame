@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://cevh74jmmpdyt"]
+
+[ext_resource type="Script" uid="uid://c5wqy4amrib06" path="res://components/tick_line.gd" id="1_07crk"]
+
+[node name="TickLine" type="Node2D"]
+script = ExtResource("1_07crk")
+
+[node name="Line2D" type="Line2D" parent="."]

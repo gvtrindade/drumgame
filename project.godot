@@ -18,3 +18,7 @@ config/features=PackedStringArray("4.4", "Forward Plus")
 
 GlobalSongData="*res://util/scripts/global_song_data.gd"
 SceneManager="*res://util/scripts/scene_manager.gd"
+
+[physics]
+
+common/physics_ticks_per_second=120

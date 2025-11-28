@@ -6,21 +6,25 @@ const MARGIN_SIDE = 100.0
 const HIT_ZONE_Y = 500
 const HIT_ZONE_HEIGHT = 10
 const NOTE_SPEED = 300
-const TICKS_PER_BAR = 96.0
 const BEATS_PER_BAR = 4.0
+const TICKS_PER_BAR = 96.0
 
 @onready var column_dividers = $GameArea/ColumnDividers
 @onready var notes_container = $Notes
 @onready var music_player = $MusicPlayer
 @onready var score_label = $UI/ScoreLabel
+@onready var bar_track_label = $UI/BarTrackerLabel
 @onready var sounds = $Sounds
 
 # HitZone
 @onready var hit_zone = $GameArea/HitZone
 @onready var hit_zone_visual = $GameArea/HitZone/HitZoneVisual
 @onready var hit_zone_window = $GameArea/HitZone/HitZoneWindow
+@onready var grid_lines_container = $GridLines
 
 const Note = preload("res://components/note.tscn")
+const TickLine = preload("res://components/tick_line.tscn")
+
 
 # Support Scripts
 var chart_parser: ChartParser
@@ -38,8 +42,12 @@ var dtx_dir: String = ""
 var metadata: Dictionary = {}
 var wav_sounds: Dictionary = {}
 var bpm: float = 120.0
-var seconds_per_beat = 60.0 / bpm
-var seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
+var miliseconds_per_beat: float = (60.0 / bpm) * 1000.0
+var miliseconds_per_bar: float = 0.0
+var is_tracking_time: bool = false
+var current_tick: int = 0
+var chart_time: float = 0.0
+var spawned_tick_lines: Dictionary = {}
 
 # Notes info
 var notes_data: Array = []
@@ -64,14 +72,14 @@ var time_elapsed: float = 0.0
 var key_bindings: Dictionary = {}
 var active_controller: String = ""
 var score: int = 0
-var debug: bool = true 
+var debug: bool = true
 
 
 func _ready():
   screen_size = get_viewport_rect().size
   screen_width = screen_size.x
   note_spawn_distance = screen_size.y
-  travel_time = note_spawn_distance / NOTE_SPEED
+  travel_time = (note_spawn_distance / NOTE_SPEED) * 1000.0
 
   notification_manager = TextNotificationManager.new()
   add_child(notification_manager)
@@ -89,7 +97,8 @@ func _ready():
   _load_selected_song()
   _setup_sounds()
   is_playing = true
-
+  is_tracking_time = true
+  chart_time = - travel_time
 
 func _update_score_display():
   score_label.text = "Score: " + str(score)
@@ -172,8 +181,8 @@ func _load_selected_song():
   elif song.bpm != null:
     bpm = float(song.bpm)
     
-  seconds_per_beat = 60.0 / bpm
-  seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
+  miliseconds_per_beat = (60.0 / bpm) * 1000.0
+  miliseconds_per_bar = miliseconds_per_beat * BEATS_PER_BAR
   
   print("BPM: ", bpm)
   
@@ -197,11 +206,14 @@ func _setup_sounds():
 
 func _process(_delta):
   while current_note_index < notes_data.size():
+    _spawn_tick_line()
+    bar_track_label.text = "Time: %f" % chart_time
+    
     var note_info = notes_data[current_note_index]
     var spawn_time = get_note_target_time(note_info)
     
     if time_elapsed >= spawn_time:
-      _execute_note(note_info, spawn_time + travel_time)
+      _execute_note(note_info, spawn_time)
       current_note_index += 1
     else:
       break
@@ -220,7 +232,7 @@ func _process(_delta):
 
 func get_note_target_time(note) -> float:
   var total_bars: float = note.bar + (note.position / TICKS_PER_BAR)
-  return total_bars * seconds_per_bar
+  return total_bars * miliseconds_per_bar
 
 
 func _execute_note(note_info, hit_time) -> void:
@@ -233,8 +245,11 @@ func _execute_note(note_info, hit_time) -> void:
 func _physics_process(delta):
   if not is_playing or notes_data.is_empty():
     return
-  
-  time_elapsed += delta
+
+  time_elapsed += delta * 1000.0
+
+  if is_tracking_time:
+    chart_time += delta * 1000.0
 
 
 func _execute_non_column_note(note_info) -> void:
@@ -242,6 +257,13 @@ func _execute_non_column_note(note_info) -> void:
     _load_bgm(note_info.sound_code)
   elif note_info.channel == "0x08":
     _change_bpm(note_info.sound_code)
+
+
+func _change_bpm(sound_code: String) -> void:
+  bpm = float(metadata["bpm" + sound_code.to_lower()])
+  miliseconds_per_beat = (60.0 / bpm) * 1000
+  miliseconds_per_bar = miliseconds_per_beat * BEATS_PER_BAR
+  notification_manager.spawn_text("Changed bpm to %f" % bpm)
 
 
 func _spawn_note_from_data(note_info: Dictionary, hit_time: float):
@@ -304,8 +326,6 @@ func _get_audio_file_path(file_key: String) -> String:
 
 
 func _load_audio(audio_stream_player: AudioStreamPlayer, audio_path: String):
-  print("Loading audio: ", audio_path)
-  
   if not FileAccess.file_exists(audio_path):
     print("Audio file not found: ", audio_path)
     return
@@ -316,27 +336,17 @@ func _load_audio(audio_stream_player: AudioStreamPlayer, audio_path: String):
     var audio_stream = AudioStreamOggVorbis.load_from_file(audio_path)
     if audio_stream:
       audio_stream_player.stream = audio_stream
-      audio_stream_player.play()
   elif extension == "wav":
     var audio_stream = AudioStreamWAV.load_from_file(audio_path)
     if audio_stream:
       audio_stream_player.stream = audio_stream
-      audio_stream_player.play()
   else:
     print("Could not load file: %s" % audio_path)
-
-
-func _change_bpm(sound_code: String) -> void:
-  bpm = float(metadata["bpm" + sound_code.to_lower()])
-  seconds_per_beat = 60.0 / bpm
-  seconds_per_bar = seconds_per_beat * BEATS_PER_BAR
-  notification_manager.spawn_text("Changed bpm to %f" % bpm)
 
 
 func _input(event):
   if not is_playing:
     return
-  
   for column in range(COLUMN_COUNT):
     if _is_column_key_pressed(column, event):
       _handle_column_hit(column)
@@ -406,17 +416,17 @@ func _handle_column_hit(column: int):
   
   var note = active_notes[column][0]
   var hit_time = note.get_meta("hit_time")
-  var current_time = time_elapsed
-  var timing_difference = abs(current_time - hit_time)
+  var timing_difference = abs(chart_time - hit_time)
+  print("Hit: %s, ex: %s" % [chart_time, hit_time])
   var sound_player = sounds.get_node(note.get_meta("sound_code"))
   sound_player.play()
   
   # Calculate score based on accuracy
-  if not debug:
-    var points = _calculate_score(timing_difference)
-    score += points
-    _update_score_display()
-    print("Hit! Column: ", column, " Accuracy: ", timing_difference, " Points: ", points)
+  # if not debug:
+  var points = _calculate_score(timing_difference)
+  score += points
+  _update_score_display()
+  # print("Hit! Column: ", column, " Accuracy: ", timing_difference, " Points: ", points)
   
   active_notes[column].erase(note)
   note.queue_free()
@@ -442,7 +452,7 @@ func _calculate_score(timing_difference: float) -> int:
 func _on_hit_zone_area_entered(area: Area2D):
   if area.is_in_group("notes"):
     var column = area.get_meta("column") if area.has_meta("column") else -1
-    if column >= 0:     
+    if column >= 0:
       # Add the new note to the end of the list
       active_notes[column].append(area)
 
@@ -467,3 +477,37 @@ func _on_debug_toggle_pressed():
   debug = !debug
   var status = "enabled" if debug else "disabled"
   notification_manager.spawn_text("Debug mode " + status)
+
+
+func _spawn_tick_line() -> void:
+  # Only spawn on specific beats within the 96-tick measure
+  var next_beat = int((chart_time + travel_time) / miliseconds_per_beat)
+  var correspondent_beat = next_beat % 4
+  if correspondent_beat not in [0, 1, 2, 3]:
+    return
+  
+  # Only spawn if we haven't already spawned for this tick
+  if spawned_tick_lines.has(next_beat):
+    return
+  
+  # Create the tick line
+  var tick_line = TickLine.instantiate()
+  grid_lines_container.add_child(tick_line)
+  
+  # Determine if this is a major beat (on beat 0 of the measure)
+  var is_major_beat = correspondent_beat == 0
+  
+  # Calculate spawn position
+  var spawn_y = HIT_ZONE_Y - note_spawn_distance
+  
+  # Setup the line with all parameters
+  tick_line.setup(
+    next_beat,
+    MARGIN_SIDE,
+    COLUMN_COUNT,
+    COLUMN_WIDTH,
+    spawn_y,
+    is_major_beat
+  )
+  
+  spawned_tick_lines[next_beat] = tick_line
