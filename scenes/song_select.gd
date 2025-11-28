@@ -5,8 +5,12 @@ const SONGS_FOLDER = "res://songs/"
 @onready var song_list = $VBoxContainer/MarginContainer/VBoxContainer/SongList
 @onready var song_info = $VBoxContainer/MarginContainer/VBoxContainer/InfoPanel/MarginContainer/SongInfo
 @onready var title_label = $VBoxContainer/MarginContainer/VBoxContainer/Title
+@onready var view_chart_button = $VBoxContainer/MarginContainer/VBoxContainer/ButtonContainer/ViewChartButton
+@onready var play_button = $VBoxContainer/MarginContainer/VBoxContainer/ButtonContainer/PlayButton
+
 
 var song_data: Array = []
+var selected_index: int = -1
 
 
 func _ready():
@@ -17,6 +21,7 @@ func _ready():
     song_list.select(0)
     _update_info_display(0)
 
+  _update_button_states()
 
 func _load_songs():
   if not DirAccess.dir_exists_absolute(SONGS_FOLDER):
@@ -176,7 +181,9 @@ func _populate_song_list():
 
 
 func _on_song_list_item_selected(index: int):
+  selected_index = index
   _update_info_display(index)
+  _update_button_states()
 
 
 func _update_info_display(index: int):
@@ -191,7 +198,6 @@ func _update_info_display(index: int):
     info_text += "Genre: %s\n" % song.genre
   info_text += "BPM: %s\n" % song.bpm
   info_text += "Difficulty: %s\n" % song.dlevel
-  info_text += "\nPress ENTER or Double-Click to play"
   
   song_info.text = info_text
 
@@ -226,3 +232,29 @@ func _input(event):
 
 func _on_back_button_button_down() -> void:
   SceneManager.goto_scene("title_screen")
+
+func _update_button_states():
+  var has_selection = selected_index >= 0 and selected_index < song_data.size()
+  view_chart_button.disabled = not has_selection
+  play_button.disabled = not has_selection
+
+
+func _on_view_chart_button_pressed():
+  if selected_index < 0 or selected_index >= song_data.size():
+    return
+  
+  var song = song_data[selected_index]
+  print("Opening chart visualizer for: ", song.title)
+  
+  # Store selected song data globally so rhythm_game can access it
+  # You can use an autoload singleton for this
+  GlobalSongData.selected_song_path = song.file_path
+  GlobalSongData.selected_song_metadata = song
+  
+  # Change to rhythm game scene
+  SceneManager.goto_scene("song_visualizer")
+
+
+func _on_play_button_pressed():
+  if selected_index >= 0:
+    _load_song(selected_index)

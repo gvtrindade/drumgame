@@ -79,6 +79,23 @@ theme_override_constants/margin_bottom = 10
 [node name="SongInfo" type="Label" parent="VBoxContainer/MarginContainer/VBoxContainer/InfoPanel/MarginContainer"]
 layout_mode = 2
 
+[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 20
+
+[node name="ViewChartButton" type="Button" parent="VBoxContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "View Chart"
+
+[node name="PlayButton" type="Button" parent="VBoxContainer/MarginContainer/VBoxContainer/ButtonContainer"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Play"
+
 [connection signal="button_down" from="VBoxContainer/HBoxContainer/BackButton" to="." method="_on_back_button_button_down"]
 [connection signal="item_activated" from="VBoxContainer/MarginContainer/VBoxContainer/SongList" to="." method="_on_song_list_item_activated"]
 [connection signal="item_selected" from="VBoxContainer/MarginContainer/VBoxContainer/SongList" to="." method="_on_song_list_item_selected"]
+[connection signal="pressed" from="VBoxContainer/MarginContainer/VBoxContainer/ButtonContainer/ViewChartButton" to="." method="_on_view_chart_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/MarginContainer/VBoxContainer/ButtonContainer/PlayButton" to="." method="_on_play_button_pressed"]
